@@ -1,0 +1,6 @@
+bsdoct
+======
+
+This utility allows configuration and control of an Octeon PCIe target device from a BSD host.  It is released under a BSD license.  It has been implemented conservatively, to support Octeon II parts attached to a FreeBSD host.  Supporting additional hosts and target parts should be fairly easy, as should extending this utility.  It is not intended to implement all of the features available using Cavium's Linux tools, but to provide a small set of core features in a reasonable way.  No open source port of Cavium's tools to FreeBSD is available, although such a port would not be very difficult.  This tool may provide a useful starting point for those interested in porting Cavium's tools to FreeBSD.
+
+Contributions of additional features and bug fixes are welcomed and encouraged.
