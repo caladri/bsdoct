@@ -85,6 +85,18 @@ static const unsigned target_pci_bar_regs[TARGET_BARS] = {
  * Provide 32-bit little-endian access to resources in
  * BAR0.
  */
+static inline uint32_t
+target_bar0_read4(const struct target *t, uint64_t addr)
+{
+	volatile uint32_t *p;
+
+	assert(addr + 4 <= t->t_pci_bar[0].tb_length);
+
+	p = (void *)(t->t_pci_bar[0].tb_virtual + addr);
+
+	return (le32toh(p[0]));
+}
+
 static inline uint64_t
 target_bar0_read8(const struct target *t, uint64_t addr)
 {
@@ -215,7 +227,7 @@ uint64_t
 target_read_csr(const struct target *t, uint64_t addr)
 {
 	cvmx_sli_win_rd_addr_t swra;
-	cvmx_sli_win_rd_data_t swrd;
+	uint32_t hi, lo;
 
 	/*
 	 * XXX
@@ -227,15 +239,27 @@ target_read_csr(const struct target *t, uint64_t addr)
 	target_bar0_write8(t, CVMX_SLI_WIN_RD_ADDR, swra.u64);
 
 	/*
-	 * XXX
-	 * Is this wrong since we do two 32-bit reads, which
-	 * would trigger two reads from memory?
+	 * Since we do two 32-bit reads, accessing the low
+	 * word last, to read a 64-bit quantity, we need to
+	 * instead here do a single 32-bit read of the low
+	 * data word, because that triggers the read itself.
+	 * Afterwards, we can read the upper 32-bit word
+	 * from the last-read register reserved for this
+	 * port on the target.
 	 *
-	 * Cavium themselves use LAST_WIN_RDATA[01] to avoid
-	 * the same.
+	 * This matches the behaviour of Cavium's own code.
+	 *
+	 * We could instead read the whole 64-bit quantity
+	 * from LAST_WIN_RDATA[01] after peeking at
+	 * WIN_RD_DATA, but that's an extra read for no
+	 * clear benefit.
 	 */
-	swrd.u64 = target_bar0_read8(t, CVMX_SLI_WIN_RD_DATA);
-	return (swrd.s.rd_data);
+	lo = target_bar0_read4(t, CVMX_SLI_WIN_RD_DATA);
+	if (t->t_pcie_port == 0)
+		hi = target_bar0_read4(t, CVMX_SLI_LAST_WIN_RDATA0 + 4);
+	else
+		hi = target_bar0_read4(t, CVMX_SLI_LAST_WIN_RDATA1 + 4);
+	return ((uint64_t)hi << 32 | lo);
 }
 
 void
