@@ -135,4 +135,5 @@ usage(void)
 "           console\n"
 "           reset\n"
 "           show\n");
+	exit(1);
 }

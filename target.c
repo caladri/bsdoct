@@ -247,6 +247,7 @@ target_write_csr(const struct target *t, uint64_t addr, uint64_t data)
 
 	swwm.u64 = 0;
 	swwm.s.wr_mask = 0xff; /* Write all 8 bytes.  */
+	target_bar0_write8(t, CVMX_SLI_WIN_WR_MASK, swwm.u64);
 
 	/*
 	 * XXX
